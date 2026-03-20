@@ -1,31 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Secure Shop - Inscription</title>
-    <link rel="stylesheet" href="/css/main.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/css/main.css" />
+  </head>
+  <body>
     <div id="topbar"></div>
 
     <main>
-        <section class="hero">
-            <div class="container">
-                <h1>Inscription</h1>
+      <section class="hero">
+        <div class="container">
+          <h1>Inscription</h1>
 
-                <p>Placer un formulaire d'inscription ici</p>
+          <form action="/api/auth/register" method="POST">
+            <label>Nom d'utilisateur*</label>
+            <input type="text" name="username" required />
 
-            </div>
-        </section>
+            <label>E-Mail*</label>
+            <input type="email" name="email" required />
+
+            <label>Mot de passe*</label>
+            <input type="password" name="password" required />
+
+            <label>Adresse</label>
+            <input type="text" name="adress" />
+
+            <label>Photo de profil</label>
+            <input type="file" name="photo" />
+
+            <button type="submit">S'inscrire</button>
+          </form>
+        </div>
+      </section>
     </main>
 
     <footer id="contact" class="footer">
-        <div class="container">
-            <p>Projet pedagogique - ETML 183</p>
-        </div>
+      <div class="container">
+        <p>Projet pedagogique - ETML 183</p>
+      </div>
     </footer>
 
     <script src="/js/nav.js"></script>
-</body>
+  </body>
 </html>
