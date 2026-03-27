@@ -22,13 +22,42 @@
             <input type="email" name="email" required />
 
             <label>Mot de passe*</label>
-            <input type="password" name="password" required />
+            <input
+              type="password"
+              id="VerifingPassword"
+              name="password"
+              required
+            />
+
+            <div id="Length" class="glyphicon glyphicon-remove">
+              Le mot de passe contien au moins <strong>7</strong> caratères.
+            </div>
+            <div id="UpperCase" class="glyphicon glyphicon-remove">
+              Le mot de passe contien au moins <strong>1</strong> caratère
+              majuscule.
+            </div>
+            <div id="LowerCase" class="glyphicon glyphicon-remove">
+              Le mot de passe contien au moins <strong>1</strong> caratère
+              minuscule.
+            </div>
+            <div id="Numbers" class="glyphicon glyphicon-remove">
+              Le mot de passe contien au moins <strong>1</strong> chiffre.
+            </div>
+            <div id="Symbols" class="glyphicon glyphicon-remove">
+              Le mot de passe contien au moins <strong>1</strong> caratère
+              spécial.
+            </div>
 
             <label>Adresse</label>
-            <input type="text" name="adress" />
+            <input type="text" name="address" />
 
-            <label>Photo de profil</label>
-            <input type="file" name="photo" />
+            <label>Lien vers une photo de profil</label>
+            <input
+              type="text"
+              name="photo_path"
+              placeholder="https://exemple.com/image.jpg"
+              id="pp_link"
+            />
 
             <button type="submit">S'inscrire</button>
           </form>
@@ -42,6 +71,9 @@
       </div>
     </footer>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
     <script src="/js/nav.js"></script>
+    <script src="/js/register.js"></script>
   </body>
 </html>
