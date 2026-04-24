@@ -1,0 +1,36 @@
+info:
+  name: Untitled
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8080/api/auth/register
+  params:
+    - name: username
+      value: oiu
+      type: query
+      disabled: true
+    - name: email
+      value: reu
+      type: query
+      disabled: true
+    - name: password
+      value: nnn
+      type: query
+      disabled: true
+  body:
+    type: json
+    data: |-
+      {
+        "password": "blabla1bla",
+        "username": "exempsle",
+        "email": "fa@f.f"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

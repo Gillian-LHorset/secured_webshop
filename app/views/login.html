@@ -13,12 +13,12 @@
       <section class="hero">
         <div class="container">
           <h1>Connexion</h1>
-          <form action="">
+          <form action="/api/auth/login" method="POST">
             <label>E-Mail</label>
-            <input type="email" />
+            <input type="email" name="email" required />
 
             <label>Mot de passe</label>
-            <input type="password" />
+            <input type="password" name="password" required />
 
             <button type="submit">Se connecter</button>
           </form>

@@ -2,6 +2,8 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const path = require("path");
+require("dotenv").config();
+
 module.exports = {
   // ----------------------------------------------------------
   // POST /api/auth/login
@@ -9,31 +11,43 @@ module.exports = {
   login: (req, res) => {
     const { email, password } = req.body;
 
+    const showLoginError = (errorMessage) => {
+      console.log("Erreur de login :", errorMessage);
+      return res.redirect("/login");
+    };
+
     if (!email || !password) {
-      return res.status(400).json({ error: "Email et mot de passe requis" });
+      return showLoginError("Email et mot de passe requis");
     }
 
-    // valid the email
     if (!emailValid(email)) {
-      return res.status(400).json({ error: "Email invalide." });
+      return showLoginError("Format d'email invalide");
     }
 
-    //TODO : compar password : https://www.npmjs.com/package/bcrypt
-    bcrypt.hash(password, saltRounds, function (err, hash) {
-      const query = "SELECT * FROM users WHERE email = ? AND password = ?";
-      const credentials = [email, password];
-      db.query(query, credentials, (err, results) => {
-        if (err) {
-          return res.status(500).json({ error: err.message, query: query });
+    const pepper = process.env.PEPPER_SECRET;
+    const passwordWithPepper = password + pepper;
+
+    db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
+      if (err) {
+        console.error(err);
+        return showLoginError("Une erreur est survenue côté serveur");
+      }
+
+      if (results.length === 0) {
+        return showLoginError("Email ou mot de passe incorrect");
+      }
+
+      const user = results[0];
+
+      bcrypt.compare(passwordWithPepper, user.password, (err, isMatch) => {
+        if (err || !isMatch) {
+          return showLoginError("Email ou mot de passe incorrect");
         }
 
-        if (results.length === 0) {
-          return res
-            .status(401)
-            .json({ error: "Email ou mot de passe incorrect" });
-        }
+        req.session.userId = user.id;
+        req.session.userEmail = user.email;
 
-        res.json({ message: "Connexion réussie", user: results[0] });
+        return res.redirect("/");
       });
     });
   },
@@ -41,29 +55,24 @@ module.exports = {
   // ----------------------------------------------------------
   // POST /api/auth/register
   // ----------------------------------------------------------
-  register: (_req, res) => {
-    let { password, username, email, address, photo_path } = _req.body;
+  register: (req, res) => {
+    let { password, username, email, address, photo_path } = req.body;
 
-    // valid the password
     if (!passwordValid(password)) {
-      return res.status(400).json({ error: "Mot de passe invalide." });
+      return res.redirect("/register");
     }
 
-    //check if the username is null
     if (!username) {
-      return res.status(400).json({ error: "Nom d'utilisateur invalide." });
+      return res.redirect("/register");
     }
 
-    // valid the email
     if (!emailValid(email)) {
-      return res.status(400).json({ error: "Email invalide." });
+      return res.redirect("/register");
     }
 
     if (photo_path) {
-      if (!photoProfilLinkValid) {
-        return res
-          .status(400)
-          .json({ error: "Lien de la photo de profil invalide." });
+      if (!photoProfilLinkValid(photo_path)) {
+        return res.redirect("/register");
       }
     } else {
       photo_path = null;
@@ -73,58 +82,55 @@ module.exports = {
       address = null;
     }
 
-    bcrypt.hash(password, saltRounds, function (err, hash) {
+    const pepper = process.env.PEPPER_SECRET;
+    const passwordWithPepper = password + pepper;
+
+    bcrypt.hash(passwordWithPepper, saltRounds, function (err, hash) {
+      if (err) {
+        return res.redirect("/register");
+      }
+
       const sqlQuery =
         "INSERT INTO users (username, email, password, address, photo_path) VALUES (?, ?, ?, ?, ?)";
       const credentials = [username, email, hash, address, photo_path];
 
       db.query(sqlQuery, credentials, (err, results) => {
-        if (err) throw err;
-        console.log("Rows affected:", results.affectedRows);
+        if (err) {
+          console.error(err);
+          if (err.code === "ER_DUP_ENTRY") {
+            return res.redirect("/register");
+          }
+          return res.redirect("/register");
+        }
+
+        res.sendFile(path.join(__dirname, "..", "views", "home.html"));
       });
     });
-
-    res.sendFile(path.join(__dirname, "..", "views", "home.html"));
   },
 };
 
-function dd(...args) {
-  console.log("dd start :");
-  console.log(...args);
-  console.log("dd end :");
-  process.exit(1);
-}
+// ----------------------------------------------------------
+// Helper Functions
+// ----------------------------------------------------------
 
 function passwordValid(password) {
+  if (!password || password.length < 8) return false;
+
   const rules = [
     { pattern: /[A-Z]/, target: "UpperCase" },
     { pattern: /[a-z]/, target: "LowerCase" },
     { pattern: /[0-9]/, target: "Numbers" },
     { pattern: /[!@#$%^&*]/, target: "Symbols" },
   ];
-  const isPasswordValid = rules.every((rule) => rule.pattern.test(password));
-
-  return isPasswordValid;
+  return rules.every((rule) => rule.pattern.test(password));
 }
 
 function emailValid(email) {
-  const rules = [
-    {
-      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    },
-  ];
-  const isValid = rules.every((rule) => rule.pattern.test(email));
-
-  return isValid;
+  const rules = [{ pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ }];
+  return rules.every((rule) => rule.pattern.test(email));
 }
 
 function photoProfilLinkValid(photo_path) {
-  const rules = [
-    {
-      pattern: /^https:\/\/.+\.(jpg|png|webp)$/i,
-    },
-  ];
-  const isValid = rules.every((rule) => rule.pattern.test(email));
-
-  return isValid;
+  const pattern = /^https:\/\/.+\.(jpg|png|webp)$/i;
+  return pattern.test(photo_path);
 }
