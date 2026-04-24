@@ -8,3 +8,8 @@
 /app/public/uploads/*.png
 /app/public/uploads/*.gif
 /app/public/uploads/*.webp
+
+.env
+app/.env
+*.env
+.env.*

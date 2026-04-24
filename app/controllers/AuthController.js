@@ -2,6 +2,7 @@ const db = require("../config/db");
 const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const path = require("path");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 module.exports = {
@@ -25,6 +26,7 @@ module.exports = {
     }
 
     const pepper = process.env.PEPPER_SECRET;
+    //return res.status(400).json({ error: pepper });
     const passwordWithPepper = password + pepper;
 
     db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
@@ -102,7 +104,14 @@ module.exports = {
           }
           return res.redirect("/register");
         }
+        const payload = {
+          userId: user.email,
+          role: user.role,
+        };
 
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: "6h",
+        });
         res.sendFile(path.join(__dirname, "..", "views", "home.html"));
       });
     });
