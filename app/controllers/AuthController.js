@@ -46,8 +46,16 @@ module.exports = {
           return showLoginError("Email ou mot de passe incorrect");
         }
 
-        req.session.userId = user.id;
-        req.session.userEmail = user.email;
+        const payload = {
+          userId: user.id,
+          isAdmin: false,
+        };
+
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: "6h",
+        });
+
+        res.cookie("SecureShopJWT_Token", token);
 
         return res.redirect("/");
       });
@@ -104,14 +112,19 @@ module.exports = {
           }
           return res.redirect("/register");
         }
+        const newUserId = results.insertId;
+
         const payload = {
-          userId: user.email,
-          role: user.role,
+          userId: newUserId,
+          isAdmin: false,
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET, {
           expiresIn: "6h",
         });
+
+        res.cookie("SecureShopJWT_Token", token);
+
         res.sendFile(path.join(__dirname, "..", "views", "home.html"));
       });
     });
