@@ -125,9 +125,13 @@ module.exports = {
 
         res.cookie("SecureShopJWT_Token", token);
 
-        res.sendFile(path.join(__dirname, "..", "views", "home.html"));
+        res.redirect("/");
       });
     });
+  },
+  logout: (req, res) => {
+    res.clearCookie("SecureShopJWT_Token");
+    return res.redirect("/");
   },
 };
 

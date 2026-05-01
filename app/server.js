@@ -5,7 +5,8 @@ const path = require("path");
 
 const app = express();
 
-const authMiddleware = require("./middleware/auth");
+// const authMiddleware = require("./middleware/auth");
+const { verifyToken } = require("./middleware/auth");
 
 // Middleware pour parser le corps des requêtes
 app.use(express.json());
@@ -40,7 +41,8 @@ app.get("/login", (_req, res) =>
 app.get("/register", (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "register.html")),
 );
-app.get("/profile", authMiddleware, (_req, res) =>
+// logout is in routes/auth.js
+app.get("/profile", verifyToken, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "profile.html")),
 );
 app.get("/admin", (_req, res) =>

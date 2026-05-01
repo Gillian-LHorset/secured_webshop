@@ -1,25 +1,27 @@
 const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 // =============================================================
 // Middleware d'authentification
 // =============================================================
 
-module.exports = (_req, _res, next) => {
-  const authHeader = _req.headers.authorization;
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) {
-    return _res.redirect("/login");
-  }
-
+const verifyToken = (_req, _res, next) => {
   try {
+    const token = _req.cookies.SecureShopJWT_Token;
+
+    if (!token) {
+      return _res.redirect("/login");
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     _req.user = decoded;
 
-    next();
+    return next();
   } catch (err) {
-    _res.status(403).json({ error: "Token invalide ou expiré." });
+    _res.redirect("/login");
   }
   next();
 };
+
+module.exports = { verifyToken };
