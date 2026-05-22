@@ -1,13 +1,29 @@
-// Fonction pour vérifier si l'utilisateur est connecté
-function isUserLoggedIn() {
-  // Vérifie la présence du cookie SecureShopJWT_Token
+// Fonction pour récupérer et décoder les données de l'utilisateur à partir du JWT
+function getUserFromToken() {
   const cookies = document.cookie.split(";").reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split("=");
-    acc[key] = value;
+    const parts = cookie.trim().split("=");
+    const key = parts[0];
+    const value = parts.slice(1).join("=");
+    if (key) acc[key] = value;
     return acc;
   }, {});
 
-  return !!cookies.SecureShopJWT_Token;
+  const token = cookies.SecureShopJWT_Token;
+  if (!token) return null;
+
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
 }
 
 // Navigation commune à toutes les pages
@@ -15,15 +31,19 @@ function isUserLoggedIn() {
 document.addEventListener("DOMContentLoaded", () => {
   const nav = document.getElementById("topbar");
   if (!nav) return;
-  const isLoggedIn = isUserLoggedIn();
+  
+  const user = getUserFromToken();
+  const isLoggedIn = !!user;
+  const isAdmin = user && user.role === "admin";
+
   nav.innerHTML = `
         <header class="topbar">
             <div class="container">
                 <div class="brand">Secure Shop</div>
                 <nav class="menu">
           <a href="/">Accueil</a>
-          <a href="/profile">Profil</a>
-          <a href="/admin">Admin</a>
+          ${isLoggedIn ? `<a href="/profile">Profil</a>` : ""}
+          ${isAdmin ? `<a href="/admin">Admin</a>` : ""}
           ${
             isLoggedIn
               ? `<a href="/api/auth/logout">Déconnexion</a>`
@@ -34,3 +54,4 @@ document.addEventListener("DOMContentLoaded", () => {
         </header>
     `;
 });
+

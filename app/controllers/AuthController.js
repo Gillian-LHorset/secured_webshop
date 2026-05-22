@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const saltRounds = 10;
 const path = require("path");
 const jwt = require("jsonwebtoken");
+const { encrypt } = require("../utils/crypto");
 require("dotenv").config();
 
 module.exports = {
@@ -48,16 +49,45 @@ module.exports = {
 
         const payload = {
           userId: user.id,
-          isAdmin: false,
+          role: user.role,
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-          expiresIn: "6h",
+        const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: "15m",
         });
 
-        res.cookie("SecureShopJWT_Token", token);
+        const refreshPayload = {
+          userId: user.id,
+        };
 
-        return res.redirect("/");
+        const refreshToken = jwt.sign(
+          refreshPayload,
+          process.env.REFRESH_SECRET || process.env.JWT_SECRET + "_refresh",
+          {
+            expiresIn: "7d",
+          },
+        );
+
+        db.query(
+          "UPDATE users SET refresh_token = ? WHERE id = ?",
+          [refreshToken, user.id],
+          (dbErr) => {
+            if (dbErr) {
+              console.error("Erreur de stockage du refresh token:", dbErr);
+              return showLoginError("Une erreur est survenue côté serveur");
+            }
+
+            res.cookie("SecureShopJWT_Token", accessToken, {
+              maxAge: 15 * 60 * 1000,
+            });
+            res.cookie("SecureShopJWT_RefreshToken", refreshToken, {
+              httpOnly: true,
+              maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return res.redirect("/");
+          },
+        );
       });
     });
   },
@@ -90,6 +120,8 @@ module.exports = {
 
     if (!address) {
       address = null;
+    } else {
+      address = encrypt(address);
     }
 
     const pepper = process.env.PEPPER_SECRET;
@@ -116,22 +148,102 @@ module.exports = {
 
         const payload = {
           userId: newUserId,
-          isAdmin: false,
+          role: "user",
         };
 
-        const token = jwt.sign(payload, process.env.JWT_SECRET, {
-          expiresIn: "6h",
+        const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+          expiresIn: "15m",
         });
 
-        res.cookie("SecureShopJWT_Token", token);
+        const refreshPayload = {
+          userId: newUserId,
+        };
 
-        res.redirect("/");
+        const refreshToken = jwt.sign(
+          refreshPayload,
+          process.env.REFRESH_SECRET || process.env.JWT_SECRET + "_refresh",
+          {
+            expiresIn: "7d",
+          },
+        );
+
+        db.query(
+          "UPDATE users SET refresh_token = ? WHERE id = ?",
+          [refreshToken, newUserId],
+          (dbErr) => {
+            if (dbErr) {
+              console.error(
+                "Erreur de stockage du refresh token lors de l'enregistrement:",
+                dbErr,
+              );
+              return res.redirect("/register");
+            }
+
+            res.cookie("SecureShopJWT_Token", accessToken, {
+              maxAge: 15 * 60 * 1000,
+            });
+            res.cookie("SecureShopJWT_RefreshToken", refreshToken, {
+              httpOnly: true,
+              maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            res.redirect("/");
+          },
+        );
       });
     });
   },
   logout: (req, res) => {
-    res.clearCookie("SecureShopJWT_Token");
-    return res.redirect("/");
+    let userId = req.user?.userId;
+
+    const clearCookiesAndRedirect = () => {
+      res.clearCookie("SecureShopJWT_Token");
+      res.clearCookie("SecureShopJWT_RefreshToken");
+      return res.redirect("/");
+    };
+
+    if (!userId) {
+      let token = null;
+      if (req.cookies && req.cookies.SecureShopJWT_Token) {
+        token = req.cookies.SecureShopJWT_Token;
+      } else if (req.headers.cookie) {
+        const cookies = req.headers.cookie.split(";").reduce((acc, cookie) => {
+          const parts = cookie.trim().split("=");
+          const key = parts[0];
+          const value = parts.slice(1).join("=");
+          if (key) acc[key] = value;
+          return acc;
+        }, {});
+        token = cookies.SecureShopJWT_Token;
+      }
+
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          userId = decoded.userId;
+        } catch (e) {
+          // Ignorer l'erreur
+        }
+      }
+    }
+
+    if (userId) {
+      db.query(
+        "UPDATE users SET refresh_token = NULL WHERE id = ?",
+        [userId],
+        (err) => {
+          if (err) {
+            console.error(
+              "Erreur de suppression du refresh token lors du logout:",
+              err,
+            );
+          }
+          clearCookiesAndRedirect();
+        },
+      );
+    } else {
+      clearCookiesAndRedirect();
+    }
   },
 };
 

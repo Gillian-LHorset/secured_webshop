@@ -2,11 +2,15 @@ require("dotenv").config({ path: "../.env" });
 
 const express = require("express");
 const path = require("path");
-
+const loginLimiter = require("./middleware/rateLimit");
 const app = express();
 
 // const authMiddleware = require("./middleware/auth");
-const { verifyToken } = require("./middleware/auth");
+const {
+  verifyToken,
+  verifyAdmin,
+  redirectIfAuthenticated,
+} = require("./middleware/auth");
 
 // Middleware pour parser le corps des requêtes
 app.use(express.json());
@@ -24,28 +28,31 @@ const adminRoute = require("./routes/Admin");
 
 app.use("/api/auth", authRoute);
 app.use("/api/profile", profileRoute);
-app.use("/api/admin", adminRoute);
+app.use("/api/admin", verifyToken, verifyAdmin, adminRoute);
 
 // ---------------------------------------------------------------
 // Routes pages (retournent du HTML)
 // ---------------------------------------------------------------
 const homeRoute = require("./routes/Home");
 const userRoute = require("./routes/User");
+const AuthController = require("./controllers/AuthController");
 
 app.use("/", homeRoute);
 app.use("/user", userRoute);
 
-app.get("/login", (_req, res) =>
+app.get("/login", redirectIfAuthenticated, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "login.html")),
 );
-app.get("/register", (_req, res) =>
+app.post("/api/auth/login", loginLimiter, AuthController.login);
+
+app.get("/register", redirectIfAuthenticated, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "register.html")),
 );
 // logout is in routes/auth.js
 app.get("/profile", verifyToken, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "profile.html")),
 );
-app.get("/admin", (_req, res) =>
+app.get("/admin", verifyToken, verifyAdmin, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "admin.html")),
 );
 
