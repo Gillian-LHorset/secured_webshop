@@ -7,7 +7,6 @@ const db = require("../config/db");
 // =============================================================
 
 const verifyToken = (_req, _res, next) => {
-  // Extract access token from cookies or header
   let token = null;
   if (_req.cookies && _req.cookies.SecureShopJWT_Token) {
     token = _req.cookies.SecureShopJWT_Token;
@@ -31,11 +30,9 @@ const verifyToken = (_req, _res, next) => {
     _req.user = decoded;
     return next();
   } catch (err) {
-    // If token expired, attempt refresh flow
     if (err.name !== "TokenExpiredError") {
       return _res.redirect("/login");
     }
-    // Extract refresh token
     let refreshToken = null;
     if (_req.cookies && _req.cookies.SecureShopJWT_RefreshToken) {
       refreshToken = _req.cookies.SecureShopJWT_RefreshToken;
@@ -55,23 +52,32 @@ const verifyToken = (_req, _res, next) => {
     try {
       const refreshDecoded = jwt.verify(
         refreshToken,
-        process.env.REFRESH_SECRET || (process.env.JWT_SECRET + "_refresh")
+        process.env.REFRESH_SECRET || process.env.JWT_SECRET + "_refresh",
       );
-      // Verify stored refresh token matches the one presented and retrieve role
       db.query(
         "SELECT role, refresh_token FROM users WHERE id = ?",
         [refreshDecoded.userId],
         (dbErr, results) => {
-          if (dbErr || results.length === 0 || results[0].refresh_token !== refreshToken) {
+          if (
+            dbErr ||
+            results.length === 0 ||
+            results[0].refresh_token !== refreshToken
+          ) {
             return _res.redirect("/login");
           }
-          const newPayload = { userId: refreshDecoded.userId, role: results[0].role };
-          const newAccessToken = jwt.sign(newPayload, process.env.JWT_SECRET, { expiresIn: "15m" });
-          // Set new access token cookie
-          _res.cookie("SecureShopJWT_Token", newAccessToken, { maxAge: 15 * 60 * 1000 });
+          const newPayload = {
+            userId: refreshDecoded.userId,
+            role: results[0].role,
+          };
+          const newAccessToken = jwt.sign(newPayload, process.env.JWT_SECRET, {
+            expiresIn: "15m",
+          });
+          _res.cookie("SecureShopJWT_Token", newAccessToken, {
+            maxAge: 15 * 60 * 1000,
+          });
           _req.user = newPayload;
           return next();
-        }
+        },
       );
     } catch (e) {
       return _res.redirect("/login");
@@ -86,9 +92,13 @@ const verifyAdmin = (_req, _res, next) => {
 
   if (_req.user.role !== "admin") {
     if (_req.originalUrl.startsWith("/api/")) {
-      return _res.status(403).json({ error: "Accès interdit : rôle administrateur requis" });
+      return _res
+        .status(403)
+        .json({ error: "Accès interdit : rôle administrateur requis" });
     } else {
-      return _res.status(403).send("Accès interdit : rôle administrateur requis");
+      return _res
+        .status(403)
+        .send("Accès interdit : rôle administrateur requis");
     }
   }
 
@@ -115,12 +125,8 @@ const redirectIfAuthenticated = (_req, _res, next) => {
       jwt.verify(token, process.env.JWT_SECRET);
       return _res.redirect("/");
     }
-  } catch (err) {
-    // Jeton invalide ou expiré, continuer
-  }
+  } catch (err) {}
   return next();
 };
 
 module.exports = { verifyToken, verifyAdmin, redirectIfAuthenticated };
-
-

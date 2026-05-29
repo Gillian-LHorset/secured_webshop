@@ -225,7 +225,7 @@ module.exports = {
           const decoded = jwt.verify(token, process.env.JWT_SECRET);
           userId = decoded.userId;
         } catch (e) {
-          // Ignorer l'erreur
+          // ignore l'erreur
         }
       }
     }
