@@ -5,6 +5,15 @@ const path = require("path");
 const loginLimiter = require("./middleware/rateLimit");
 const app = express();
 
+// about secure
+const https = require("https");
+const fs = require("fs");
+
+const httpsOptions = {
+  key: fs.readFileSync(path.join(__dirname, "server.key")),
+  cert: fs.readFileSync(path.join(__dirname, "server.cert")),
+};
+
 app.set("trust proxy", 1);
 // const authMiddleware = require("./middleware/auth");
 const {
@@ -59,6 +68,6 @@ app.get("/admin", verifyToken, verifyAdmin, (_req, res) =>
 
 // Démarrage du serveur
 app.get("/test", (_req, res) => res.send("db admin: root, pwd : root"));
-app.listen(8080, () => {
-  console.log("Serveur démarré sur http://localhost:8080");
+https.createServer(httpsOptions, app).listen(8080, () => {
+  console.log("Serveur démarré sur https://localhost:8080");
 });

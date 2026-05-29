@@ -13,3 +13,5 @@
 app/.env
 *.env
 .env.*
+*.cert
+*.key
