@@ -13,27 +13,26 @@ module.exports = {
   login: (req, res) => {
     const { email, password } = req.body;
 
-    const showLoginError = (errorMessage) => {
+    const showLoginError = (errorMessage, statusCode = 401) => {
       console.log("Erreur de login :", errorMessage);
-      return res.redirect("/login");
+      return res.status(statusCode).json({ message: errorMessage });
     };
 
     if (!email || !password) {
-      return showLoginError("Email et mot de passe requis");
+      return showLoginError("Email et mot de passe requis", 400);
     }
 
     if (!emailValid(email)) {
-      return showLoginError("Format d'email invalide");
+      return showLoginError("Format d'email invalide", 400);
     }
 
     const pepper = process.env.PEPPER_SECRET;
-    //return res.status(400).json({ error: pepper });
     const passwordWithPepper = password + pepper;
 
     db.query("SELECT * FROM users WHERE email = ?", [email], (err, results) => {
       if (err) {
         console.error(err);
-        return showLoginError("Une erreur est survenue côté serveur");
+        return showLoginError("Une erreur est survenue côté serveur", 500);
       }
 
       if (results.length === 0) {
@@ -74,18 +73,22 @@ module.exports = {
           (dbErr) => {
             if (dbErr) {
               console.error("Erreur de stockage du refresh token:", dbErr);
-              return showLoginError("Une erreur est survenue côté serveur");
+              return res.status(500).json({
+                message: "Une erreur est survenue côté serveur.",
+              });
             }
 
             res.cookie("SecureShopJWT_Token", accessToken, {
               maxAge: 15 * 60 * 1000,
             });
             res.cookie("SecureShopJWT_RefreshToken", refreshToken, {
-              httpOnly: true,
               maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 
-            return res.redirect("/");
+            return res.status(200).json({
+              success: true,
+              message: "Connexion réussie !",
+            });
           },
         );
       });

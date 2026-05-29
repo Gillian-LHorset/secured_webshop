@@ -5,6 +5,7 @@ const path = require("path");
 const loginLimiter = require("./middleware/rateLimit");
 const app = express();
 
+app.set("trust proxy", 1);
 // const authMiddleware = require("./middleware/auth");
 const {
   verifyToken,
@@ -43,7 +44,7 @@ app.use("/user", userRoute);
 app.get("/login", redirectIfAuthenticated, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "login.html")),
 );
-app.post("/api/auth/login", loginLimiter, AuthController.login);
+//app.post("/api/auth/login", loginLimiter, AuthController.login);
 
 app.get("/register", redirectIfAuthenticated, (_req, res) =>
   res.sendFile(path.join(__dirname, "views", "register.html")),

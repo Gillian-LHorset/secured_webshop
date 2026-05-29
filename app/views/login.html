@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Secure Shop - Connexion</title>
     <link rel="stylesheet" href="/css/main.css" />
+    <style>
+      .error-msg {
+        color: #ff3333;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="topbar"></div>
@@ -13,7 +22,10 @@
       <section class="hero">
         <div class="container">
           <h1>Connexion</h1>
-          <form action="/api/auth/login" method="POST">
+
+          <div id="error-box" class="error-msg"></div>
+
+          <form id="login-form">
             <label>E-Mail</label>
             <input type="email" name="email" required />
 
@@ -33,5 +45,55 @@
     </footer>
 
     <script src="/js/nav.js"></script>
+
+    <script>
+      const form = document.getElementById("login-form");
+      const errorBox = document.getElementById("error-box");
+
+      form.addEventListener("submit", async (e) => {
+        // empeche le rechargement de la page
+        e.preventDefault();
+
+        errorBox.style.display = "none";
+        errorBox.textContent = "";
+
+        // récupère les valeurs du form
+        const email = form.email.value;
+        const password = form.password.value;
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const contentType = response.headers.get("content-type");
+          let data = {};
+
+          if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+          } else {
+            const textData = await response.text();
+            data = { message: textData };
+          }
+
+          if (!response.ok) {
+            errorBox.textContent = data.message || "Une erreur est survenue.";
+            errorBox.style.display = "block";
+            return;
+          }
+
+          if (data.success) {
+            window.location.href = "/";
+          }
+        } catch (error) {
+          console.error("Détail de l'erreur réseau :", error);
+          errorBox.textContent =
+            "Impossible de joindre le serveur ou erreur réseau.";
+          errorBox.style.display = "block";
+        }
+      });
+    </script>
   </body>
 </html>
