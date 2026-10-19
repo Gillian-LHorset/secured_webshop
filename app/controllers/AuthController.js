@@ -79,10 +79,10 @@ module.exports = {
             }
 
             res.cookie("SecureShopJWT_Token", accessToken, {
-              maxAge: 15 * 60 * 1000,
+              maxAge: 15 * 60 * 1000, //15m
             });
             res.cookie("SecureShopJWT_RefreshToken", refreshToken, {
-              maxAge: 7 * 24 * 60 * 60 * 1000,
+              maxAge: 7 * 24 * 60 * 60 * 1000, //7j
             });
 
             return res.status(200).json({
